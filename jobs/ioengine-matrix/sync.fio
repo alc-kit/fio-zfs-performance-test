@@ -1,0 +1,11 @@
+; ioengine=sync (pread/pwrite). One outstanding I/O per job-thread.
+[matrix-sync]
+ioengine=sync
+directory=${TEST_MOUNT}/default
+filename=matrix-sync.dat
+rw=randrw
+rwmixread=70
+bs=8k
+size=50G
+iodepth=1
+numjobs=${FIO_NUMJOBS}

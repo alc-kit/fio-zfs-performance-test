@@ -1,0 +1,16 @@
+[matrix-io_uring]
+ioengine=io_uring
+; io_uring-specific knobs. sqthread_poll enables a kernel thread to poll the
+; submission queue, which is the mode that produces the highest submission rate
+; and therefore the most disruption to the ZFS write pipeline.
+sqthread_poll=1
+fixedbufs=1
+registerfiles=1
+directory=${TEST_MOUNT}/default
+filename=matrix-iouring.dat
+rw=randrw
+rwmixread=70
+bs=8k
+size=50G
+iodepth=32
+numjobs=${FIO_NUMJOBS}

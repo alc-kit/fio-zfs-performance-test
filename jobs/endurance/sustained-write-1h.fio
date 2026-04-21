@@ -1,0 +1,17 @@
+; One-hour sustained incompressible write. Crevice: reveals thermal throttling,
+; NVMe SLC-cache exhaustion (though enterprise drives rarely have this),
+; txg-flush rhythm, and cumulative LUKS+ZFS CPU budget.
+; WARN: overrides FIO_RUNTIME; writes ~TBs. Run only when you can dedicate the pool.
+
+[sustained-1h]
+directory=${TEST_MOUNT}/endurance
+filename=sustained-${jobnum}.dat
+rw=write
+bs=1M
+size=500G
+iodepth=32
+numjobs=${FIO_NUMJOBS}
+runtime=3600
+refill_buffers=1
+buffer_compress_percentage=0
+end_fsync=1

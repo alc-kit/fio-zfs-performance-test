@@ -1,0 +1,34 @@
+; Fill the pool toward capacity, then measure. Crevice: ZFS performance degrades
+; hard past ~80% full — metaslab selection gets expensive, free-space map work
+; dominates. This job fills the endurance dataset with several large files, then
+; runs a random write over them to measure post-fill IOPS.
+; WARN: You must separately observe zpool capacity BEFORE running to be sure you
+;       do not fill the whole pool. The TEST_QUOTA on prepare-datasets.sh caps it,
+;       but the endurance dataset is capped at 1T by default — adjust if you want
+;       to actually push the pool toward its capacity cliff.
+
+[fill-phase]
+directory=${TEST_MOUNT}/endurance
+filename=fill-${jobnum}.dat
+rw=write
+bs=1M
+size=150G
+iodepth=16
+numjobs=6
+refill_buffers=1
+buffer_compress_percentage=0
+end_fsync=1
+runtime=0
+time_based=0
+stonewall
+
+[post-fill-random]
+directory=${TEST_MOUNT}/endurance
+filename=fill-${jobnum}.dat
+rw=randwrite
+bs=8k
+size=150G
+iodepth=${FIO_IODEPTH}
+numjobs=${FIO_NUMJOBS}
+runtime=600
+stonewall

@@ -1,0 +1,10 @@
+[matrix-psync]
+ioengine=psync
+directory=${TEST_MOUNT}/default
+filename=matrix-psync.dat
+rw=randrw
+rwmixread=70
+bs=8k
+size=50G
+iodepth=1
+numjobs=${FIO_NUMJOBS}

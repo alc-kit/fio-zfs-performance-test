@@ -1,0 +1,10 @@
+[matrix-libaio]
+ioengine=libaio
+directory=${TEST_MOUNT}/default
+filename=matrix-libaio.dat
+rw=randrw
+rwmixread=70
+bs=8k
+size=50G
+iodepth=32
+numjobs=${FIO_NUMJOBS}

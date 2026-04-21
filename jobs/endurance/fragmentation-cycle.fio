@@ -1,0 +1,19 @@
+; Fragmentation builder — writes, then randomly overwrites small regions, for hours.
+; Crevice: with no TRIM and COW, every overwrite frees the old block and allocates
+;          a new one. Over time, metaslab free space becomes fragmented and write
+;          throughput falls off a cliff. Run this for >4h to see real degradation,
+;          then compare the result to a fresh sustained-write-1h on the same pool.
+; WARN: long-running; heavy; run only on an empty pool.
+
+[fragment-fill]
+directory=${TEST_MOUNT}/endurance
+filename=fragment.dat
+rw=randwrite
+bs=4k
+size=500G
+iodepth=${FIO_IODEPTH}
+numjobs=${FIO_NUMJOBS}
+runtime=14400
+refill_buffers=1
+buffer_compress_percentage=0
+end_fsync=1
