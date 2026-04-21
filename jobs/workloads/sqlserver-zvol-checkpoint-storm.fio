@@ -1,0 +1,44 @@
+; SQL Server checkpoint storm — PRODUCTION-REPRESENTATIVE zvol variant.
+;
+; Same collision scenario as sqlserver-checkpoint-storm.fio (sustained OLTP +
+; sync log + delayed write burst) but running against the zvol — so it exercises
+; the code path a real VM actually uses on this host.
+;
+; Regions inside the zvol (non-overlapping):
+;   oltp-steady      offset=0     size=200G  (random 8K 80/20 R/W, moderate QD)
+;   log-steady       offset=220G  size=10G   (sequential 16K, sync=1, QD=1)
+;   checkpoint-burst offset=240G  size=80G   (sequential 256K, startdelay=30s, runtime=60s)
+
+[oltp-steady]
+filename=/dev/zvol/${ZFS_POOL}/${ZVOL_NAME}
+offset=0
+size=200G
+rw=randrw
+rwmixread=80
+bs=8k
+iodepth=8
+numjobs=4
+runtime=${FIO_RUNTIME}
+
+[log-steady]
+filename=/dev/zvol/${ZFS_POOL}/${ZVOL_NAME}
+offset=220G
+size=10G
+rw=write
+bs=16k
+iodepth=1
+numjobs=1
+sync=1
+runtime=${FIO_RUNTIME}
+
+[checkpoint-burst]
+filename=/dev/zvol/${ZFS_POOL}/${ZVOL_NAME}
+offset=240G
+size=80G
+rw=write
+bs=256k
+iodepth=32
+numjobs=2
+startdelay=30
+runtime=60
+end_fsync=1

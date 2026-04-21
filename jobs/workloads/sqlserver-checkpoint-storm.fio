@@ -1,0 +1,47 @@
+; SQL Server "checkpoint storm" — DATASET variant (stock default dataset).
+; Sustained OLTP + a delayed burst of dirty pages flushing to disk, while the
+; log stream keeps going. Recreates the worst-case latency spikes seen when the
+; database dirties the buffer pool faster than checkpoint can clear it.
+;
+; The write burst collides with the ongoing sync-log stream; ZIL latency for
+; the log writer should spike dramatically during the burst — this is usually
+; where SQL Server hits the pool's write-latency ceiling.
+;
+; The production-representative zvol variant is sqlserver-zvol-checkpoint-storm
+; (added when the zvol suite was introduced). This dataset version is retained
+; as a comparison point, not as a production-path test.
+
+[oltp-steady]
+directory=${TEST_MOUNT}/default
+filename=oltp.mdf
+rw=randrw
+rwmixread=80
+bs=8k
+size=200G
+iodepth=8
+numjobs=4
+runtime=${FIO_RUNTIME}
+
+[log-steady]
+directory=${TEST_MOUNT}/default
+filename=oltp.ldf
+rw=write
+bs=16k
+size=10G
+iodepth=1
+numjobs=1
+sync=1
+runtime=${FIO_RUNTIME}
+
+[checkpoint-burst]
+directory=${TEST_MOUNT}/default
+filename=oltp-burst.dat
+rw=write
+bs=256k
+size=80G
+iodepth=32
+numjobs=2
+; Delay start so steady state is established first; then hammer.
+startdelay=30
+runtime=60
+end_fsync=1

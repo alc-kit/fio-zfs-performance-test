@@ -1,0 +1,19 @@
+; Many small files — stresses DMU/DNode/zap metadata rather than data blocks.
+; Crevice: fio's filecreate + synchronous create/unlink patterns expose metadata
+;          write amplification in the pool. Watch arcstats "meta" counters.
+
+[create-many-small]
+directory=${TEST_MOUNT}/default
+rw=write
+bs=4k
+filesize=64k
+nrfiles=20000
+openfiles=256
+file_service_type=random
+create_on_open=1
+unlink=1
+numjobs=${FIO_NUMJOBS}
+iodepth=1
+fsync=1
+; time_based is set in the global prelude; this job will run for FIO_RUNTIME
+; and keep cycling through file create/write/unlink.

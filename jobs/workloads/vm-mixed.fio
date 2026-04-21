@@ -1,0 +1,33 @@
+; Generic mixed VM workload — a blend of patterns that a Proxmox guest usually
+; produces: 4K random R/W for OS/app files, 64K sequential for logs, occasional
+; 1M sequential for backup-like activity.
+; Crevice: reveals how the pool behaves under heterogeneous concurrent I/O rather
+;          than a single clean pattern.
+
+[vm-osdisk-random]
+directory=${TEST_MOUNT}/default
+filename=vm-os.dat
+rw=randrw
+rwmixread=65
+bs=4k
+size=50G
+iodepth=8
+numjobs=4
+
+[vm-logfile-seq]
+directory=${TEST_MOUNT}/default
+filename=vm-log.dat
+rw=write
+bs=64k
+size=10G
+iodepth=2
+numjobs=1
+
+[vm-bulk-seq]
+directory=${TEST_MOUNT}/default
+filename=vm-bulk.dat
+rw=read
+bs=1M
+size=20G
+iodepth=8
+numjobs=1

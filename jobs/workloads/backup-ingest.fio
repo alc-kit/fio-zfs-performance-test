@@ -1,0 +1,18 @@
+; Backup ingest — large sequential writes of incompressible data from many
+; concurrent streams, on the stock default dataset. Saturates the write
+; pipeline; LUKS crypto CPU is typically the ceiling on this hardware. Also
+; useful for spotting per-vdev imbalance in the RAID10 layout: during this run,
+; monitor/zpool-iostat.log should show roughly even write bandwidth across all
+; three mirror vdevs.
+
+[backup-ingest]
+directory=${TEST_MOUNT}/default
+filename=backup-${jobnum}.dat
+rw=write
+bs=1M
+size=${FIO_SIZE}
+iodepth=16
+numjobs=${FIO_NUMJOBS}
+refill_buffers=1
+buffer_compress_percentage=0
+end_fsync=1

@@ -1,0 +1,51 @@
+; SQL Server VM simulation — PRODUCTION-REPRESENTATIVE zvol variant.
+;
+; Targets /dev/zvol/${ZFS_POOL}/${ZVOL_NAME} — a zvol created by prepare-zvols.sh
+; with sparse=1 and volblocksize=16K (PVE 9 default) and no other property
+; customisation. This is exactly how Proxmox backs a VM disk on this pool; a
+; SQL Server VM running here would hit the pool through this same code path.
+;
+; The zvol is one block device, so the three SQL Server I/O streams share it
+; using non-overlapping offset ranges instead of separate files:
+;
+;   data file  : offset=0,    size=200G  (random 8K, 70/30 R/W, fsync every 4096 I/Os)
+;   tempdb     : offset=220G, size=40G   (random 64K, 50/50 R/W, fsync every 2048 I/Os)
+;   log file   : offset=280G, size=20G   (sequential write, sync=1, QD=1)
+;
+; The zvol must therefore be at least 300G. prepare-zvols.sh defaults to 500G.
+;
+; NOTE: direct=1 is inherited from _global.fio. Against a block device this
+; means the host page cache is bypassed; ZFS's ARC is still consulted because
+; stock Proxmox does not set direct=standard.
+
+[sql-data-zvol]
+filename=/dev/zvol/${ZFS_POOL}/${ZVOL_NAME}
+offset=0
+size=200G
+rw=randrw
+rwmixread=70
+bs=8k
+iodepth=8
+numjobs=4
+fsync=4096
+
+[sql-tempdb-zvol]
+filename=/dev/zvol/${ZFS_POOL}/${ZVOL_NAME}
+offset=220G
+size=40G
+rw=randrw
+rwmixread=50
+bs=64k
+iodepth=4
+numjobs=2
+fsync=2048
+
+[sql-log-zvol]
+filename=/dev/zvol/${ZFS_POOL}/${ZVOL_NAME}
+offset=280G
+size=20G
+rw=write
+bs=60k
+iodepth=1
+numjobs=1
+sync=1

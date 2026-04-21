@@ -1,0 +1,48 @@
+; SQL Server VM simulation — DATASET variant.
+;
+; Runs on the stock default dataset (128K recordsize, lz4, primarycache=all,
+; sync=standard — what Proxmox itself would set). This models the case where
+; a VM disk is stored as a qcow2/raw file on a ZFS dataset, NOT the zvol path
+; that Proxmox uses by default on this host. Kept as a comparison point only.
+;
+; The production-representative SQL Server test is sqlserver-zvol.fio, which
+; targets a zvol with the PVE-9 default volblocksize=16K and no property
+; customisation — exactly how Proxmox backs a VM disk on this pool.
+;
+; Three concurrent streams:
+;   1. data file  — random 8K, 70/30 R/W, moderate QD (buffer pool misses + dirty writes)
+;   2. log file   — sequential, small, synchronous, QD=1 (write-ahead log, FUA)
+;   3. tempdb     — random 64K mixed, allocation churn
+
+[sql-data]
+directory=${TEST_MOUNT}/default
+filename=sqlsim-datafile.mdf
+rw=randrw
+rwmixread=70
+bs=8k
+size=200G
+iodepth=8
+numjobs=4
+; Periodic fsync simulates SQL Server checkpoint flush
+fsync=4096
+
+[sql-log]
+directory=${TEST_MOUNT}/default
+filename=sqlsim-logfile.ldf
+rw=write
+bs=60k
+size=20G
+iodepth=1
+numjobs=1
+sync=1
+
+[sql-tempdb]
+directory=${TEST_MOUNT}/default
+filename=sqlsim-tempdb.mdf
+rw=randrw
+rwmixread=50
+bs=64k
+size=40G
+iodepth=4
+numjobs=2
+fsync=2048

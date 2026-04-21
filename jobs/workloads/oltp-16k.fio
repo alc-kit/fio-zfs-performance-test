@@ -1,0 +1,18 @@
+; Generic OLTP pattern — 16K random 70/30 R/W, periodic fsync, on the stock
+; default dataset (128K recordsize — what Proxmox sets). Represents an OLTP
+; workload as it lands on an un-tuned dataset. Expect recordsize-misalignment
+; drag because I/O is 16K on a 128K-record dataset.
+;
+; For the comparison showing what the same workload looks like on an aligned
+; (rs=16k) dataset, see jobs/zfs-diagnostic/recordsize-aligned-vs-misaligned.fio.
+
+[oltp-16k]
+directory=${TEST_MOUNT}/default
+filename=oltp.dat
+rw=randrw
+rwmixread=70
+bs=16k
+size=${FIO_SIZE}
+iodepth=16
+numjobs=${FIO_NUMJOBS}
+fsync=1024
