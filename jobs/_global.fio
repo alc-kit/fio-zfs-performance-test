@@ -1,0 +1,22 @@
+; Shared fio settings. Each job includes this and overrides what it needs.
+; Env vars are substituted by fio at parse time; defaults come from lib/common.sh.
+[global]
+ioengine=${FIO_IOENGINE}
+direct=1
+time_based=1
+runtime=${FIO_RUNTIME}
+ramp_time=${FIO_RAMP_TIME}
+group_reporting=1
+thread=1
+; Fill buffers with fresh random each I/O so lz4 cannot trivialise writes.
+refill_buffers=1
+buffer_compress_percentage=0
+; Keep the random stream different every run so we don't hit identical caches.
+randrepeat=0
+allrandrepeat=0
+; Write verified status + bandwidth/iops logs into the result dir.
+write_bw_log=bw
+write_iops_log=iops
+write_lat_log=lat
+log_avg_msec=1000
+per_job_logs=0

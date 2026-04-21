@@ -1,0 +1,13 @@
+; Random 4 KiB reads.
+; Crevice: small-I/O on a 128k-recordsize dataset — every 4k read pulls a full
+;          128k record from disk (read amplification 32x) unless ARC-resident.
+; Expect: modest IOPS cold; very high IOPS once working set fits in ARC.
+
+[rand-read-4k]
+directory=${TEST_MOUNT}/default
+filename=rand-read.dat
+rw=randread
+bs=4k
+size=${FIO_SIZE}
+iodepth=${FIO_IODEPTH}
+numjobs=${FIO_NUMJOBS}

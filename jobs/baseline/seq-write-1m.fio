@@ -1,0 +1,13 @@
+; Sequential write, 1 MiB blocks.
+; Crevice: write pipeline throughput (txg batching, LUKS CPU, vdev parallelism).
+; Expect: limited by sum of per-vdev write bandwidth and crypto CPU.
+
+[seq-write-1m]
+directory=${TEST_MOUNT}/default
+filename=seq-write.dat
+rw=write
+bs=1M
+size=${FIO_SIZE}
+iodepth=${FIO_IODEPTH}
+numjobs=${FIO_NUMJOBS}
+end_fsync=1

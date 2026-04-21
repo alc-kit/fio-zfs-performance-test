@@ -1,0 +1,14 @@
+; Random 4 KiB writes (async).
+; Crevice: read-modify-write on 128k records. Every 4k write forces a 128k read
+;          + recompress + rewrite (write amplification 32x). Worst-case async path.
+; Expect: far lower IOPS than raw NVMe; txg flushes cause latency spikes.
+
+[rand-write-4k]
+directory=${TEST_MOUNT}/default
+filename=rand-write.dat
+rw=randwrite
+bs=4k
+size=${FIO_SIZE}
+iodepth=${FIO_IODEPTH}
+numjobs=${FIO_NUMJOBS}
+end_fsync=1

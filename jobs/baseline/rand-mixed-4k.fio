@@ -1,0 +1,15 @@
+; Random 4 KiB mixed 70/30 read/write.
+; Crevice: reads compete with write-path stalls during txg flushes; ARC eviction
+;          pressure rises when writes invalidate cached records.
+; Expect: p99 latency much higher than pure read case; IOPS oscillates with txg.
+
+[rand-mixed-4k]
+directory=${TEST_MOUNT}/default
+filename=rand-mixed.dat
+rw=randrw
+rwmixread=70
+bs=4k
+size=${FIO_SIZE}
+iodepth=${FIO_IODEPTH}
+numjobs=${FIO_NUMJOBS}
+end_fsync=1

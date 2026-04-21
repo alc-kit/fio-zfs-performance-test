@@ -1,0 +1,12 @@
+; Sequential read, 1 MiB blocks.
+; Crevice: measures mirror-read aggregation + ZFS prefetcher + ARC hit ceiling.
+; Expect: very high bandwidth once ARC is warm; first pass reveals raw pool read.
+
+[seq-read-1m]
+directory=${TEST_MOUNT}/default
+filename=seq-read.dat
+rw=read
+bs=1M
+size=${FIO_SIZE}
+iodepth=${FIO_IODEPTH}
+numjobs=${FIO_NUMJOBS}
