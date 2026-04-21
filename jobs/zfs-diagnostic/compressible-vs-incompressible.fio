@@ -1,0 +1,34 @@
+; INFORMATIONAL — runs against the stock default dataset (no property changes).
+; Two back-to-back writes: perfectly compressible data (zeros) vs incompressible
+; random data. Quantifies how much of a measured write throughput number is
+; really lz4 eating zero pages versus actual bytes hitting NVMe. Important
+; context because your VM images often contain large zero-runs that will look
+; deceptively fast here.
+; Expect: zero-fill may appear 5-20x faster than random because ZFS writes nothing.
+
+[compressible-zero-fill]
+directory=${TEST_MOUNT}/default
+filename=compress-zero.dat
+rw=write
+bs=128k
+size=${FIO_SIZE}
+iodepth=${FIO_IODEPTH}
+numjobs=${FIO_NUMJOBS}
+zero_buffers=1
+refill_buffers=0
+buffer_compress_percentage=100
+end_fsync=1
+stonewall
+
+[incompressible-random]
+directory=${TEST_MOUNT}/default
+filename=compress-rand.dat
+rw=write
+bs=128k
+size=${FIO_SIZE}
+iodepth=${FIO_IODEPTH}
+numjobs=${FIO_NUMJOBS}
+refill_buffers=1
+buffer_compress_percentage=0
+end_fsync=1
+stonewall

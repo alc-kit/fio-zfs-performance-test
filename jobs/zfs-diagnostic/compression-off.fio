@@ -1,0 +1,18 @@
+; DIAGNOSTIC — NOT a candidate production configuration.
+; Writes incompressible data to a diagnostic dataset with compression=off.
+; Compare against the stock default (lz4) dataset running the same workload to
+; isolate the CPU cost of the compression code path, independent of its space
+; savings. On fast NVMe + fast CPU, lz4 often short-circuits on incompressible
+; data quickly enough that turning it off brings no throughput win — verify.
+
+[no-compress-write-diagnostic]
+directory=${TEST_MOUNT}/diagnostic-no-compress
+filename=nocompress.dat
+rw=write
+bs=128k
+size=${FIO_SIZE}
+iodepth=${FIO_IODEPTH}
+numjobs=${FIO_NUMJOBS}
+refill_buffers=1
+buffer_compress_percentage=0
+end_fsync=1

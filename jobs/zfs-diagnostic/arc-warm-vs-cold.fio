@@ -1,0 +1,26 @@
+; INFORMATIONAL — runs against the stock default dataset (no property changes).
+; Same random read done twice in sequence. First pass is cold (from disk);
+; second pass should be warm (from ARC). The delta between the two passes IS
+; the ARC value your production workload will actually experience on this host.
+; If FIO_SIZE exceeds ARC capacity, the warm pass will not fully fit and you
+; will see exactly where that cliff lives.
+
+[arc-cold-pass]
+directory=${TEST_MOUNT}/default
+filename=arc-probe.dat
+rw=randread
+bs=4k
+size=${FIO_SIZE}
+iodepth=${FIO_IODEPTH}
+numjobs=${FIO_NUMJOBS}
+stonewall
+
+[arc-warm-pass]
+directory=${TEST_MOUNT}/default
+filename=arc-probe.dat
+rw=randread
+bs=4k
+size=${FIO_SIZE}
+iodepth=${FIO_IODEPTH}
+numjobs=${FIO_NUMJOBS}
+stonewall

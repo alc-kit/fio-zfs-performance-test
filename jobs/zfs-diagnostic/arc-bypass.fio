@@ -1,0 +1,15 @@
+; DIAGNOSTIC — NOT a candidate production configuration.
+; Forces all data reads to miss ARC via primarycache=metadata on a diagnostic
+; dataset. Measures the raw encrypted pool read path with DRAM masking removed.
+; Stock Proxmox leaves primarycache=all; this number describes the floor the
+; pool would give if ARC were absent — useful context for cold-boot or
+; working-sets larger than ARC.
+
+[arc-bypass-randread-4k-diagnostic]
+directory=${TEST_MOUNT}/diagnostic-no-cache
+filename=bypass-rr.dat
+rw=randread
+bs=4k
+size=${FIO_SIZE}
+iodepth=${FIO_IODEPTH}
+numjobs=${FIO_NUMJOBS}

@@ -1,0 +1,26 @@
+; DIAGNOSTIC — NOT a candidate production configuration.
+; Back-to-back: 16k random write on a diagnostic rs=16k dataset (aligned) versus
+; the stock default dataset (rs=128k, misaligned). Quantifies the read-modify-
+; write penalty when I/O block size < dataset recordsize. The aligned dataset
+; exists only for diagnostic comparison; production Proxmox leaves recordsize
+; at the default.
+
+[rs-aligned-16k-diagnostic]
+directory=${TEST_MOUNT}/diagnostic-rs-16k
+filename=align.dat
+rw=randwrite
+bs=16k
+size=${FIO_SIZE}
+iodepth=${FIO_IODEPTH}
+numjobs=${FIO_NUMJOBS}
+stonewall
+
+[rs-misaligned-stock-default]
+directory=${TEST_MOUNT}/default
+filename=misalign.dat
+rw=randwrite
+bs=16k
+size=${FIO_SIZE}
+iodepth=${FIO_IODEPTH}
+numjobs=${FIO_NUMJOBS}
+stonewall

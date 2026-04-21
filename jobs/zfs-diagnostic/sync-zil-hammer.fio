@@ -1,0 +1,41 @@
+; DIAGNOSTIC — NOT candidate production configurations.
+; Three-way comparison to bound ZIL cost and scope the stock sync=standard
+; behaviour. Each stanza uses a different diagnostic dataset:
+;   sync=always    — every write goes through ZIL, even non-sync ones (worst case)
+;   stock default  — sync=standard (only O_SYNC/fsync goes through ZIL)
+;   sync=disabled  — NEVER a production setting; losses on crash; diagnostic floor only
+; No SLOG is present, so ZIL writes land in-pool and get rewritten at txg flush.
+; Compare the three to quantify the ZIL round-trip cost on this LUKS+NVMe stack.
+
+[sync-always-diagnostic]
+directory=${TEST_MOUNT}/diagnostic-sync-always
+filename=zil.dat
+rw=randwrite
+bs=8k
+size=${FIO_SIZE}
+iodepth=1
+numjobs=${FIO_NUMJOBS}
+fsync=1
+stonewall
+
+[sync-standard-stock]
+directory=${TEST_MOUNT}/default
+filename=zil-stock.dat
+rw=randwrite
+bs=8k
+size=${FIO_SIZE}
+iodepth=1
+numjobs=${FIO_NUMJOBS}
+fsync=1
+stonewall
+
+[sync-disabled-diagnostic-floor]
+directory=${TEST_MOUNT}/diagnostic-sync-disabled
+filename=nozil.dat
+rw=randwrite
+bs=8k
+size=${FIO_SIZE}
+iodepth=1
+numjobs=${FIO_NUMJOBS}
+fsync=1
+stonewall
