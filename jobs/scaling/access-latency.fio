@@ -1,0 +1,77 @@
+; Access latency probe — the NVMe equivalent of "seek latency".
+;
+; NVMe has no mechanical head to move, so "seek latency" in the HDD sense does
+; not exist. The meaningful analogue is the latency of a random-address I/O
+; with no queueing and no concurrency — i.e. iodepth=1, numjobs=1. That number
+; is the floor latency a single SQL Server thread sees when it has a
+; cache-missing read.
+;
+; Four stonewalled sections — interpret the clat percentile distribution
+; (captured per-second into lat.*.log + the fio.json percentile list):
+;
+;   1. warm-4k       4K random read on the stock default dataset. After ramp
+;                    most I/Os will be ARC hits; this is the hot-data latency
+;                    floor (typically <10 µs).
+;   2. warm-512b     512 B random read, otherwise identical to warm-4k. Shows
+;                    whether the software stack adds material per-I/O cost at
+;                    the smallest meaningful block size.
+;   3. cold-4k       4K random read on diagnostic-no-cache (primarycache=
+;                    metadata). Every I/O misses ARC and goes to disk through
+;                    LUKS — this is the cold-data ("seek") latency that
+;                    matters for buffer-pool misses. Typically 50-200 µs on
+;                    NVMe, variable with LUKS decrypt load.
+;   4. cold-4k-qd8   Same cold access but iodepth=8. Shows the latency cost
+;                    of queue depth — average latency climbs but aggregate
+;                    throughput rises, useful for understanding where SQL
+;                    Server's prefetch-into-buffer-pool starts trading per-I/O
+;                    latency for aggregate bandwidth.
+;
+; Notes:
+; - ramp_time is important here; the first few thousand I/Os on a cold file
+;   will be prefetch-driven and their latency tells you about prefetch, not
+;   access. _global.fio gives us a ramp by default.
+; - percentile_list picks fine percentiles so we can see the tail clearly.
+
+[warm-4k-qd1]
+directory=${TEST_MOUNT}/default
+filename=access-latency-4k.dat
+rw=randread
+bs=4k
+size=50G
+iodepth=1
+numjobs=1
+percentile_list=1:5:10:25:50:75:90:95:99:99.5:99.9:99.95:99.99
+stonewall
+
+[warm-512b-qd1]
+directory=${TEST_MOUNT}/default
+filename=access-latency-512.dat
+rw=randread
+bs=512
+size=10G
+iodepth=1
+numjobs=1
+percentile_list=1:5:10:25:50:75:90:95:99:99.5:99.9:99.95:99.99
+stonewall
+
+[cold-4k-qd1]
+directory=${TEST_MOUNT}/diagnostic-no-cache
+filename=access-latency-cold.dat
+rw=randread
+bs=4k
+size=50G
+iodepth=1
+numjobs=1
+percentile_list=1:5:10:25:50:75:90:95:99:99.5:99.9:99.95:99.99
+stonewall
+
+[cold-4k-qd8]
+directory=${TEST_MOUNT}/diagnostic-no-cache
+filename=access-latency-cold.dat
+rw=randread
+bs=4k
+size=50G
+iodepth=8
+numjobs=1
+percentile_list=1:5:10:25:50:75:90:95:99:99.5:99.9:99.95:99.99
+stonewall
