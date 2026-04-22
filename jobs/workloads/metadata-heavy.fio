@@ -1,6 +1,13 @@
 ; Many small files — stresses DMU/DNode/zap metadata rather than data blocks.
-; Crevice: fio's filecreate + synchronous create/unlink patterns expose metadata
-;          write amplification in the pool. Watch arcstats "meta" counters.
+; fio's create_on_open + unlink pattern forces constant metadata churn that
+; exposes write amplification in the pool. Watch /proc/spl/kstat/zfs/arcstats
+; "metadata_size" and "meta" counters during the run.
+;
+; File-descriptor note: _global.fio sets thread=1 so every job is a pthread in
+; one process and all threads share one fd table. Per-thread openfiles times
+; numjobs must stay below the process RLIMIT_NOFILE. run-suite.sh raises the
+; soft limit to the hard cap before exec, but openfiles is kept conservative
+; here so the job still succeeds if that fails on some host.
 
 [create-many-small]
 directory=${TEST_MOUNT}/default
@@ -8,12 +15,14 @@ rw=write
 bs=4k
 filesize=64k
 nrfiles=20000
-openfiles=256
+openfiles=64
 file_service_type=random
 create_on_open=1
 unlink=1
 numjobs=${FIO_NUMJOBS}
 iodepth=1
 fsync=1
-; time_based is set in the global prelude; this job will run for FIO_RUNTIME
-; and keep cycling through file create/write/unlink.
+; time_based is set in the global prelude; this job runs for FIO_RUNTIME and
+; keeps cycling through create/write/fsync/unlink. A smaller openfiles value
+; actually increases metadata stress because fio churns through the file set
+; more aggressively.

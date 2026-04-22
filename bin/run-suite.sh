@@ -17,6 +17,13 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 require_cmd fio
 
+# Raise the soft file-descriptor limit toward the hard cap. The metadata-heavy
+# job opens thousands of small files and the default systemd soft limit (1024)
+# is not enough; the hard limit on PVE 9 is usually 524288 or 1048576. Failing
+# quietly is fine for environments where the hard cap is already lower.
+ulimit -Sn "$(ulimit -Hn)" 2>/dev/null || true
+log "RLIMIT_NOFILE: soft=$(ulimit -Sn) hard=$(ulimit -Hn)"
+
 run_all=0
 if [[ "${1:-}" == "-a" ]]; then run_all=1; shift; fi
 [[ $# -ge 1 || $run_all -eq 1 ]] || die "usage: $0 <suite|job.fio> | -a"
@@ -74,12 +81,16 @@ run_one_job() {
         cat "$job"
     } > "$effective"
 
+    # Run fio from the result directory so its per-second bw/iops/lat log files
+    # (named via write_*_log in _global.fio and per-job files) land next to
+    # fio.json instead of in the invoker's CWD. All paths we hand fio are
+    # absolute so the cd is safe.
     set +e
-    fio \
+    ( cd "$out" && fio \
         --output-format=json+,normal \
         --output="$out/fio.json" \
         --eta=always --eta-newline=10 \
-        "$effective" 2>&1 | tee "$out/fio.log"
+        "$effective" ) 2>&1 | tee "$out/fio.log"
     local rc=${PIPESTATUS[0]}
     set -e
 
