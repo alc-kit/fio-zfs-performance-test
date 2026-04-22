@@ -1,0 +1,72 @@
+; 26-hour production-representative SQL Server VM simulation against the zvol.
+;
+; Same three concurrent I/O streams as jobs/workloads/sqlserver-zvol.fio but
+; pinned to a 26-hour runtime so the framework observes:
+;   - full circadian variability of the pool (anything background on the host
+;     that correlates with time of day shows up here)
+;   - NVMe thermal behaviour under sustained pressure
+;   - cumulative txg-flush rhythm over many hours
+;   - ARC steady-state composition after a very long warm period
+;   - any slow-building ZIL contention or fragmentation that ramps over hours
+;
+; runtime=93600 seconds = 26 hours. ramp_time=600 (10 min) lets the ARC and
+; the SQL-log cyclic write region reach steady state before stats collection
+; begins.
+;
+; Zvol must be >= 300 GiB (prepare-zvols.sh defaults to 500 GiB). The three
+; streams use non-overlapping offsets inside the zvol:
+;   data file   offset=0    size=200G   random 8K   70/30 R/W  fsync=4096
+;   tempdb      offset=220G size=40G    random 64K  50/50 R/W  fsync=2048
+;   log file    offset=280G size=20G    sequential 60K write   sync=1 QD=1
+
+[sql-data-26h]
+filename=/dev/zvol/${ZFS_POOL}/${ZVOL_NAME}
+offset=0
+size=200G
+rw=randrw
+rwmixread=70
+bs=8k
+iodepth=8
+numjobs=4
+fsync=4096
+runtime=93600
+ramp_time=600
+; write per-second bw/iops/lat logs so the 26-hour time series is preserved
+; even if the final json summary is all that survives
+write_bw_log=sql-data-bw
+write_iops_log=sql-data-iops
+write_lat_log=sql-data-lat
+log_avg_msec=1000
+
+[sql-tempdb-26h]
+filename=/dev/zvol/${ZFS_POOL}/${ZVOL_NAME}
+offset=220G
+size=40G
+rw=randrw
+rwmixread=50
+bs=64k
+iodepth=4
+numjobs=2
+fsync=2048
+runtime=93600
+ramp_time=600
+write_bw_log=sql-tempdb-bw
+write_iops_log=sql-tempdb-iops
+write_lat_log=sql-tempdb-lat
+log_avg_msec=1000
+
+[sql-log-26h]
+filename=/dev/zvol/${ZFS_POOL}/${ZVOL_NAME}
+offset=280G
+size=20G
+rw=write
+bs=60k
+iodepth=1
+numjobs=1
+sync=1
+runtime=93600
+ramp_time=600
+write_bw_log=sql-log-bw
+write_iops_log=sql-log-iops
+write_lat_log=sql-log-lat
+log_avg_msec=1000
