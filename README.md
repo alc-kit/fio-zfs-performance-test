@@ -63,11 +63,31 @@ results/<timestamp>/    per-run output (gitignored)
 
 ## Prerequisites
 
+**Required** — `bin/monitor.sh` aborts the run if any of these is missing:
 - `fio` 3.x
-- `zfs` / `zpool` (OpenZFS ≥ 2.2; this host has 2.4)
-- `cryptsetup`, `lsblk`, `iostat` (sysstat), `vmstat`
-- Recommended: `arcstat`, `arc_summary`, `nvme-cli`, `mpstat`
-- Run as root. Scripts refuse otherwise.
+- OpenZFS ≥ 2.2 (this host runs 2.4): `zfs`, `zpool`
+- `vmstat` (procps — preinstalled on every Debian/PVE)
+- `cryptsetup`, `lsblk`
+
+**Required for full per-device / per-CPU monitoring** — the run will *complete*
+without these, but the resulting data set is materially less useful for
+diagnosing per-NVMe imbalance or LUKS-CPU pinning. `MONITORS_SUMMARY.txt`
+clearly logs that these were skipped.
+- `iostat` (sysstat)
+- `mpstat` (sysstat)
+
+**Optional** — enriches the env snapshot:
+- `arcstat` (zfsutils-linux on most distros) — pretty ARC stats; framework
+  falls back to a raw `/proc/spl/kstat/zfs/arcstats` dump if missing
+- `arc_summary` — text ARC summary
+- `nvme-cli` — NVMe model/serial in env snapshot
+
+**Debian/PVE one-liner — install everything the framework can use:**
+```bash
+apt install fio sysstat zfsutils-linux nvme-cli cryptsetup procps
+```
+
+Run all bin/ scripts as root — they create/destroy datasets and drop caches.
 
 ## Quickstart
 

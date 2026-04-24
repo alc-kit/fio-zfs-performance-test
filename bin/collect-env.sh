@@ -72,4 +72,31 @@ mkdir -p "$out"
     command -v fio >/dev/null && fio --enghelp | head -60
 } > "$out/fio.txt" 2>&1
 
+# Tool availability snapshot. Each result directory is then self-documenting
+# about what could and could not be measured at run time, so a missing
+# monitor.log six months from now is immediately explained by tool-availability.txt
+# in the same env/ directory.
+{
+    echo "# Required: monitor.sh aborts the run if any of these is missing."
+    for tool in fio zpool zfs vmstat cryptsetup lsblk; do
+        if command -v "$tool" >/dev/null; then
+            printf '  REQUIRED  OK       %-12s -> %s\n' "$tool" "$(command -v "$tool")"
+        else
+            printf '  REQUIRED  MISSING  %s\n' "$tool"
+        fi
+    done
+    echo
+    echo "# Optional: enriches analysis but the run proceeds without these."
+    for tool in iostat mpstat arcstat arc_summary nvme; do
+        if command -v "$tool" >/dev/null; then
+            printf '  OPTIONAL  OK       %-12s -> %s\n' "$tool" "$(command -v "$tool")"
+        else
+            printf '  OPTIONAL  MISSING  %s\n' "$tool"
+        fi
+    done
+    echo
+    echo "# Debian/PVE one-liner to install everything the framework can use:"
+    echo "#   apt install fio sysstat zfsutils-linux nvme-cli cryptsetup procps"
+} > "$out/tool-availability.txt"
+
 log "env snapshot: $out"
