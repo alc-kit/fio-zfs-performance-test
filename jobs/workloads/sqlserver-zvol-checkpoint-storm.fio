@@ -10,6 +10,7 @@
 ;   checkpoint-burst offset=240G  size=80G   (sequential 256K, startdelay=30s, runtime=60s)
 
 [oltp-steady]
+new_group=1
 filename=/dev/zvol/${ZFS_POOL}/${ZVOL_NAME}
 offset=0
 size=200G
@@ -21,6 +22,7 @@ numjobs=4
 runtime=${FIO_RUNTIME}
 
 [log-steady]
+new_group=1
 filename=/dev/zvol/${ZFS_POOL}/${ZVOL_NAME}
 offset=220G
 size=10G
@@ -32,6 +34,7 @@ sync=1
 runtime=${FIO_RUNTIME}
 
 [checkpoint-burst]
+new_group=1
 filename=/dev/zvol/${ZFS_POOL}/${ZVOL_NAME}
 offset=240G
 size=80G

@@ -19,6 +19,7 @@
 ; stock Proxmox does not set direct=standard.
 
 [sql-data-zvol]
+new_group=1
 filename=/dev/zvol/${ZFS_POOL}/${ZVOL_NAME}
 offset=0
 size=200G
@@ -30,6 +31,7 @@ numjobs=4
 fsync=4096
 
 [sql-tempdb-zvol]
+new_group=1
 filename=/dev/zvol/${ZFS_POOL}/${ZVOL_NAME}
 offset=220G
 size=40G
@@ -41,6 +43,7 @@ numjobs=2
 fsync=2048
 
 [sql-log-zvol]
+new_group=1
 filename=/dev/zvol/${ZFS_POOL}/${ZVOL_NAME}
 offset=280G
 size=20G

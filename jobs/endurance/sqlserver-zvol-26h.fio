@@ -20,6 +20,7 @@
 ;   log file    offset=280G size=20G    sequential 60K write   sync=1 QD=1
 
 [sql-data-26h]
+new_group=1
 filename=/dev/zvol/${ZFS_POOL}/${ZVOL_NAME}
 offset=0
 size=200G
@@ -39,6 +40,7 @@ write_lat_log=sql-data-lat
 log_avg_msec=1000
 
 [sql-tempdb-26h]
+new_group=1
 filename=/dev/zvol/${ZFS_POOL}/${ZVOL_NAME}
 offset=220G
 size=40G
@@ -56,6 +58,7 @@ write_lat_log=sql-tempdb-lat
 log_avg_msec=1000
 
 [sql-log-26h]
+new_group=1
 filename=/dev/zvol/${ZFS_POOL}/${ZVOL_NAME}
 offset=280G
 size=20G

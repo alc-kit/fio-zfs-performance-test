@@ -85,14 +85,54 @@ run_one_job() {
     # (named via write_*_log in _global.fio and per-job files) land next to
     # fio.json instead of in the invoker's CWD. All paths we hand fio are
     # absolute so the cd is safe.
+    #
+    # We want BOTH a parseable JSON file and the human-readable per-job summary.
+    # fio's --output-format=json+,normal writes them concatenated into ONE file,
+    # so we send that combined output to fio.out and post-extract the JSON
+    # portion into fio.json (parseable) and the summary into fio.summary.txt.
+    # Eta/progress/errors go to stdout/stderr and are captured to fio.log.
     set +e
     ( cd "$out" && fio \
         --output-format=json+,normal \
-        --output="$out/fio.json" \
+        --output="$out/fio.out" \
         --eta=always --eta-newline=10 \
         "$effective" ) 2>&1 | tee "$out/fio.log"
     local rc=${PIPESTATUS[0]}
     set -e
+
+    # Split fio.out into a parseable fio.json and a human fio.summary.txt.
+    # fio writes the human-readable section first, then the JSON object;
+    # extract by finding the first '{' at column 0 and balancing braces.
+    if [[ -f "$out/fio.out" ]]; then
+        python3 - "$out/fio.out" "$out/fio.json" "$out/fio.summary.txt" <<'PY' || log "warn: fio.out split failed"
+import sys, pathlib
+src, json_dst, txt_dst = sys.argv[1], sys.argv[2], sys.argv[3]
+buf = pathlib.Path(src).read_text()
+# locate first '{' that starts a line — fio's json+ output begins this way
+start = -1
+for i, line in enumerate(buf.splitlines(keepends=True)):
+    if line.startswith("{"):
+        start = sum(len(l) for l in buf.splitlines(keepends=True)[:i])
+        break
+if start < 0:
+    pathlib.Path(txt_dst).write_text(buf)
+    pathlib.Path(json_dst).write_text("")
+    sys.exit(0)
+depth, end = 0, -1
+for i in range(start, len(buf)):
+    c = buf[i]
+    if c == "{": depth += 1
+    elif c == "}":
+        depth -= 1
+        if depth == 0:
+            end = i + 1
+            break
+if end < 0:
+    sys.exit("unbalanced JSON braces in fio.out")
+pathlib.Path(txt_dst).write_text(buf[:start].rstrip() + "\n")
+pathlib.Path(json_dst).write_text(buf[start:end] + "\n")
+PY
+    fi
 
     zpool list -v "$ZFS_POOL" > "$out/zpool-after.txt" 2>&1 || true
     zfs list -r -o name,used,avail,refer "$TEST_ROOT" > "$out/zfs-after.txt" 2>&1 || true

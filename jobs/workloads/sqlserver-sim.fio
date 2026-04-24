@@ -15,6 +15,7 @@
 ;   3. tempdb     — random 64K mixed, allocation churn
 
 [sql-data]
+new_group=1
 directory=${TEST_MOUNT}/default
 filename=sqlsim-datafile.mdf
 rw=randrw
@@ -27,6 +28,7 @@ numjobs=4
 fsync=4096
 
 [sql-log]
+new_group=1
 directory=${TEST_MOUNT}/default
 filename=sqlsim-logfile.ldf
 rw=write
@@ -37,6 +39,7 @@ numjobs=1
 sync=1
 
 [sql-tempdb]
+new_group=1
 directory=${TEST_MOUNT}/default
 filename=sqlsim-tempdb.mdf
 rw=randrw

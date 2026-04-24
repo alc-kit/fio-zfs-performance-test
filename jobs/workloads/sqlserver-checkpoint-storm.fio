@@ -12,6 +12,7 @@
 ; as a comparison point, not as a production-path test.
 
 [oltp-steady]
+new_group=1
 directory=${TEST_MOUNT}/default
 filename=oltp.mdf
 rw=randrw
@@ -23,6 +24,7 @@ numjobs=4
 runtime=${FIO_RUNTIME}
 
 [log-steady]
+new_group=1
 directory=${TEST_MOUNT}/default
 filename=oltp.ldf
 rw=write
@@ -34,6 +36,7 @@ sync=1
 runtime=${FIO_RUNTIME}
 
 [checkpoint-burst]
+new_group=1
 directory=${TEST_MOUNT}/default
 filename=oltp-burst.dat
 rw=write

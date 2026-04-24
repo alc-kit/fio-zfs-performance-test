@@ -1,5 +1,13 @@
 ; Shared fio settings. Each job includes this and overrides what it needs.
 ; Env vars are substituted by fio at parse time; defaults come from lib/common.sh.
+;
+; group_reporting note: fio's group_reporting collapses all [name] sections in
+; a job file into ONE aggregated reporting group unless something separates
+; them. `stonewall` already implies a new group, so back-to-back stonewalled
+; sections (qd-sweep, recordsize comparisons, etc.) report per-section
+; correctly. CONCURRENT multi-stream files (the SQL Server simulations,
+; vm-mixed) must set `new_group=1` in each section to keep their per-stream
+; visibility intact. See those files for examples.
 [global]
 ioengine=${FIO_IOENGINE}
 direct=1

@@ -5,6 +5,7 @@
 ;          than a single clean pattern.
 
 [vm-osdisk-random]
+new_group=1
 directory=${TEST_MOUNT}/default
 filename=vm-os.dat
 rw=randrw
@@ -15,6 +16,7 @@ iodepth=8
 numjobs=4
 
 [vm-logfile-seq]
+new_group=1
 directory=${TEST_MOUNT}/default
 filename=vm-log.dat
 rw=write
@@ -24,6 +26,7 @@ iodepth=2
 numjobs=1
 
 [vm-bulk-seq]
+new_group=1
 directory=${TEST_MOUNT}/default
 filename=vm-bulk.dat
 rw=read
