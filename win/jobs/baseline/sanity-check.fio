@@ -1,0 +1,36 @@
+; Sanity-check baseline. Run this first to confirm fio runs cleanly inside
+; the VM and that the prepared volumes (E:, F:, G:) accept I/O at expected
+; rates. Three short stonewalled sections — total runtime < 6 minutes.
+
+[seq-write-1m-data]
+filename=E\:\fio-test\sanity-write.dat
+rw=write
+bs=1M
+size=10G
+iodepth=8
+numjobs=2
+runtime=120
+end_fsync=1
+stonewall
+
+[rand-read-4k-data]
+filename=E\:\fio-test\sanity-write.dat
+rw=randread
+bs=4k
+size=10G
+iodepth=16
+numjobs=2
+runtime=120
+stonewall
+
+[rand-mixed-8k-tempdb]
+filename=G\:\fio-test\sanity-tempdb.dat
+rw=randrw
+rwmixread=70
+bs=8k
+size=5G
+iodepth=8
+numjobs=2
+runtime=120
+fsync=512
+stonewall

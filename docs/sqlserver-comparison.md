@@ -127,10 +127,35 @@ state looks fine and the checkpoint burst exposes the collision.
 | `ioengine-matrix/libaio` IOPS    | Upper bound for VMs configured with `aio=native`         |
 | Checkpoint-storm log p99         | Worst-case commit latency under dirty-burst contention — this is the number to compare against your actual DB's write-latency SLO |
 
-## If you want to close the gap further
+## Closing the gap: the in-VM Windows test (`win/`)
 
-Run fio *inside a Proxmox VM* configured the same way as the real SQL Server
-one would be (same cores, RAM, disk bus, cache mode, multi-queue setting),
-against a raw disk or zvol. Then the only missing layer is SQL Server itself —
-which is mostly the buffer pool, and easy to reason about separately. That's a
-useful follow-up to this framework, not a replacement for it.
+The `win/` subdirectory is the practical follow-up: a PowerShell-based
+parallel of `bin/run-suite.sh` that runs fio *inside* a Proxmox Windows
+Server 2025 VM whose disks are zvols on the same pool. The VM is sized
+realistically (16 cores, 566 GiB RAM, virtio-SCSI with `iothread=1`,
+`discard=on`, `ssd=1`) and the test volumes (E:, F:, G:) are NTFS-formatted
+with 64 KiB allocation units — Microsoft's documented SQL Server best
+practice — and given Defender exclusions, high-performance power plan,
+and disabled NTFS last-access-time, exactly as a real SQL Server install
+guide would specify.
+
+Three layers can then be compared directly:
+
+1. **fio host on zvol** (`bin/run-suite.sh jobs/workloads/sqlserver-zvol.fio`)
+   — touches the pool through ZPL/zvol code path; no VM stack.
+2. **fio in-VM on NTFS file** (`win/Run-Suite.ps1 workloads\sqlserver-vm-sim.fio`)
+   — adds qemu virtio-SCSI, guest Windows I/O stack, and NTFS on top of
+   the same pool.
+3. *(SQL Server itself, on the same VM)* — adds the buffer pool, log
+   manager, checkpointer, scheduler, and waits. This framework does not
+   simulate SQL Server proper; it gives you the storage-stack ceiling
+   that a real SQL Server install would have to live under.
+
+The delta between (1) and (2) is the "VM stack tax" — the sum of virtio
+queue serialisation, qemu iothread CPU, and NTFS metadata overhead.
+Quantifying it lets you reason about how much of any production SQL
+Server latency is the storage stack vs the database itself.
+
+For comparison validity, both runs must execute on the **same physical
+Proxmox node** so the underlying NVMe + LUKS + ZFS stack is identical.
+See `win/README.md` for the comparison protocol.

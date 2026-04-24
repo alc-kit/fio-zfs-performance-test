@@ -1,0 +1,60 @@
+; 26-hour SQL Server VM endurance simulation — counterpart to the host's
+; jobs/endurance/sqlserver-zvol-26h.fio. Same three concurrent streams as
+; sqlserver-vm-sim.fio, runtime pinned to 93600 s with a 600 s warm-up.
+;
+; The host run on the same hardware revealed 18% IOPS drift and 62% log
+; commit latency drift over 26h, alongside pool fragmentation 19% -> 37%.
+; This in-VM test asks: does the same drift appear when the workload arrives
+; via virtio-SCSI + NTFS instead of touching the zvol directly?
+;
+; Sizes scaled to fit the per-disk 100 GiB caps (vs the host's 200/40/20G).
+
+[sql-data-26h]
+new_group=1
+filename=E\:\fio-test\datafile.mdf
+rw=randrw
+rwmixread=70
+bs=8k
+size=80G
+iodepth=8
+numjobs=4
+fsync=4096
+runtime=93600
+ramp_time=600
+write_bw_log=sql-data-bw
+write_iops_log=sql-data-iops
+write_lat_log=sql-data-lat
+log_avg_msec=1000
+
+[sql-tempdb-26h]
+new_group=1
+filename=G\:\fio-test\tempdb.mdf
+rw=randrw
+rwmixread=50
+bs=64k
+size=30G
+iodepth=4
+numjobs=2
+fsync=2048
+runtime=93600
+ramp_time=600
+write_bw_log=sql-tempdb-bw
+write_iops_log=sql-tempdb-iops
+write_lat_log=sql-tempdb-lat
+log_avg_msec=1000
+
+[sql-log-26h]
+new_group=1
+filename=F\:\fio-test\logfile.ldf
+rw=write
+bs=60k
+size=18G
+iodepth=1
+numjobs=1
+sync=1
+runtime=93600
+ramp_time=600
+write_bw_log=sql-log-bw
+write_iops_log=sql-log-iops
+write_lat_log=sql-log-lat
+log_avg_msec=1000

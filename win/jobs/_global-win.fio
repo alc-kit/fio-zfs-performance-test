@@ -1,0 +1,31 @@
+; Shared fio settings for jobs running INSIDE a Windows Server VM on Proxmox.
+; Run-Suite.ps1 prepends this to each selected job file before invoking fio.
+;
+; Notable differences vs the Linux side (jobs/_global.fio):
+;   - ioengine=windowsaio is the native Windows overlapped-I/O API. SQL Server
+;     uses the same underlying mechanism, so this is what real applications
+;     see. fio on Windows does NOT support io_uring or libaio.
+;   - thread=1 is still set; on Windows this means fio uses Windows threads.
+;
+; Same group_reporting convention as on Linux: enabled here, with `new_group=1`
+; in concurrent multi-stream files (sqlserver-vm-sim.fio etc.) so per-stream
+; statistics survive into fio.json instead of being collapsed.
+[global]
+ioengine=windowsaio
+direct=1
+time_based=1
+runtime=${FIO_RUNTIME}
+ramp_time=${FIO_RAMP_TIME}
+group_reporting=1
+thread=1
+; Refresh buffer contents every I/O so any compression in the path below
+; (Proxmox-side ZFS lz4) cannot trivialise the writes.
+refill_buffers=1
+buffer_compress_percentage=0
+randrepeat=0
+allrandrepeat=0
+write_bw_log=bw
+write_iops_log=iops
+write_lat_log=lat
+log_avg_msec=1000
+per_job_logs=0

@@ -1,0 +1,44 @@
+; SQL Server checkpoint storm — INSIDE the Windows VM. Counterpart to
+; jobs/workloads/sqlserver-zvol-checkpoint-storm.fio on the host.
+;
+; Same collision scenario: sustained OLTP on the data volume + sync log
+; stream + a delayed write burst that simulates a checkpoint flushing
+; dirty pages while the log writer is still committing transactions.
+; The interesting number is what happens to log-stream tail latency
+; during the burst window.
+;
+; Sizes scaled down to fit the 100 GiB virtio data disks.
+
+[oltp-steady]
+new_group=1
+filename=E\:\fio-test\oltp.mdf
+rw=randrw
+rwmixread=80
+bs=8k
+size=80G
+iodepth=8
+numjobs=4
+runtime=${FIO_RUNTIME}
+
+[log-steady]
+new_group=1
+filename=F\:\fio-test\oltp.ldf
+rw=write
+bs=16k
+size=10G
+iodepth=1
+numjobs=1
+sync=1
+runtime=${FIO_RUNTIME}
+
+[checkpoint-burst]
+new_group=1
+filename=G\:\fio-test\oltp-burst.dat
+rw=write
+bs=256k
+size=30G
+iodepth=32
+numjobs=2
+startdelay=30
+runtime=60
+end_fsync=1

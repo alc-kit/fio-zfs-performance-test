@@ -1,0 +1,55 @@
+; SQL Server VM simulation — INSIDE the Windows VM, NTFS files on three
+; dedicated virtio-SCSI volumes. Counterpart to the host-side
+; jobs/workloads/sqlserver-zvol.fio.
+;
+; This is the production-representative path for "what does a SQL Server
+; instance running inside this VM see from the storage stack?". Difference
+; vs the host zvol numbers measures the qemu virtio-SCSI + NTFS layers added
+; on top of the same physical pool.
+;
+; Layout matches Microsoft's documented best-practice separation:
+;   E:\fio-test\datafile.mdf   — random 8K, 70/30 R/W, periodic fsync
+;                                (data file: buffer-pool misses + dirty writes)
+;   G:\fio-test\tempdb.mdf     — random 64K, 50/50 R/W, periodic fsync
+;                                (tempdb: allocation churn + sort spills)
+;   F:\fio-test\logfile.ldf    — sequential, small, sync, QD=1
+;                                (log: write-ahead log, FUA / WRITE_THROUGH)
+;
+; File sizes are SCALED DOWN from the host's 200/40/20 GiB to 80/30/18 GiB
+; because each virtio data disk is only 100 GiB. The *shape* of the I/O
+; pattern (block sizes, ratios, sync semantics) is identical to the host.
+; Working sets are therefore smaller — note that ARC on the Proxmox host
+; will mask more of the read traffic than in the host-side test where the
+; working set was 200 GiB.
+
+[sql-data]
+new_group=1
+filename=E\:\fio-test\datafile.mdf
+rw=randrw
+rwmixread=70
+bs=8k
+size=80G
+iodepth=8
+numjobs=4
+fsync=4096
+
+[sql-tempdb]
+new_group=1
+filename=G\:\fio-test\tempdb.mdf
+rw=randrw
+rwmixread=50
+bs=64k
+size=30G
+iodepth=4
+numjobs=2
+fsync=2048
+
+[sql-log]
+new_group=1
+filename=F\:\fio-test\logfile.ldf
+rw=write
+bs=60k
+size=18G
+iodepth=1
+numjobs=1
+sync=1
