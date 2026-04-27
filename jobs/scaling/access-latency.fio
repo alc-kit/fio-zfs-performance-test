@@ -6,25 +6,35 @@
 ; is the floor latency a single SQL Server thread sees when it has a
 ; cache-missing read.
 ;
-; Four stonewalled sections — interpret the clat percentile distribution
+; Three stonewalled sections — interpret the clat percentile distribution
 ; (captured per-second into lat.*.log + the fio.json percentile list):
 ;
 ;   1. warm-4k       4K random read on the stock default dataset. After ramp
 ;                    most I/Os will be ARC hits; this is the hot-data latency
 ;                    floor (typically <10 µs).
-;   2. warm-512b     512 B random read, otherwise identical to warm-4k. Shows
-;                    whether the software stack adds material per-I/O cost at
-;                    the smallest meaningful block size.
-;   3. cold-4k       4K random read on diagnostic-no-cache (primarycache=
+;   2. cold-4k       4K random read on diagnostic-no-cache (primarycache=
 ;                    metadata). Every I/O misses ARC and goes to disk through
 ;                    LUKS — this is the cold-data ("seek") latency that
 ;                    matters for buffer-pool misses. Typically 50-200 µs on
 ;                    NVMe, variable with LUKS decrypt load.
-;   4. cold-4k-qd8   Same cold access but iodepth=8. Shows the latency cost
+;   3. cold-4k-qd8   Same cold access but iodepth=8. Shows the latency cost
 ;                    of queue depth — average latency climbs but aggregate
 ;                    throughput rises, useful for understanding where SQL
 ;                    Server's prefetch-into-buffer-pool starts trading per-I/O
 ;                    latency for aggregate bandwidth.
+;
+; About bs (block size) — historical note
+; ---------------------------------------
+; This file used to include a fourth section (warm-512b-qd1) running 512 B
+; random reads to measure "software stack overhead at the smallest meaningful
+; block size". On this hardware (ashift=12, 4K device sector), a 512 B
+; request *cannot* be smaller than the device — it resolves to a 4 K read at
+; the controller regardless. The pre-2.4 OpenZFS path used to silently
+; downgrade O_DIRECT to buffered for unaligned I/O so the test appeared to
+; succeed by reading from the page cache (showing a deceptive ~25 µs p50);
+; OpenZFS 2.3+ with `direct=standard` (now the default) honors O_DIRECT and
+; rejects the unaligned 512 B read with EINVAL. The test therefore measured
+; nothing useful on either kmod version. Removed.
 ;
 ; Notes:
 ; - ramp_time is important here; the first few thousand I/Os on a cold file
@@ -38,17 +48,6 @@ filename=access-latency-4k.dat
 rw=randread
 bs=4k
 size=50G
-iodepth=1
-numjobs=1
-percentile_list=1:5:10:25:50:75:90:95:99:99.5:99.9:99.95:99.99
-stonewall
-
-[warm-512b-qd1]
-directory=${TEST_MOUNT}/default
-filename=access-latency-512.dat
-rw=randread
-bs=512
-size=10G
 iodepth=1
 numjobs=1
 percentile_list=1:5:10:25:50:75:90:95:99:99.5:99.9:99.95:99.99
