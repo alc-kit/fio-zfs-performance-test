@@ -1,0 +1,36 @@
+; Shared fio settings for jobs running INSIDE an Ubuntu VM on Proxmox.
+; bin/run-suite.sh prepends this to each selected job before invoking fio.
+;
+; Notable differences vs the host (jobs/_global.fio) and the Windows-VM
+; (win/jobs/_global-win.fio):
+;   - ioengine=io_uring is the modern Linux native async path. Same engine
+;     qemu uses by default for the VM disks themselves on Proxmox 7.2+,
+;     and what current Linux DB applications would use.
+;   - direct=1 is real O_DIRECT on Linux ext4 (bypasses the guest page
+;     cache cleanly). This is the Linux equivalent of FILE_FLAG_NO_BUFFERING
+;     in the Windows VM tests.
+;   - thread=1 (use pthreads not separate processes; matches host + Windows
+;     framework conventions).
+;
+; Same group_reporting convention: enabled here, with `new_group=1` in
+; concurrent multi-stream files (the SQL Server simulations) so per-stream
+; statistics survive into fio.json instead of being collapsed.
+[global]
+ioengine=io_uring
+direct=1
+time_based=1
+runtime=${FIO_RUNTIME}
+ramp_time=${FIO_RAMP_TIME}
+group_reporting=1
+thread=1
+; Refresh buffer contents every I/O so any compression in the path below
+; (Proxmox-side ZFS lz4) cannot trivialise the writes.
+refill_buffers=1
+buffer_compress_percentage=0
+randrepeat=0
+allrandrepeat=0
+write_bw_log=bw
+write_iops_log=iops
+write_lat_log=lat
+log_avg_msec=1000
+per_job_logs=0

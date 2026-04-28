@@ -1,0 +1,62 @@
+; 26-hour SQL Server VM endurance simulation - counterpart to the host's
+; jobs/endurance/sqlserver-zvol-26h.fio and win/jobs/endurance/
+; sqlserver-vm-26h.fio. Same three concurrent streams as sqlserver-vm-sim.fio,
+; runtime pinned to 93600 s with a 600 s warm-up.
+;
+; Three-way endurance comparison on the same physical node:
+;   Host   (zvol direct)   - already collected, see findings-2026-04-25.md sec 5/7
+;   Linux  (ext4 in VM)    - this file
+;   Windows (NTFS in VM)   - already collected
+;
+; Sizes match the short workload tests (30/8/4 GiB) and the Windows-VM 26h
+; tests so the three runs can be compared with the same x-axis.
+
+[sql-data-26h]
+new_group=1
+filename=/mnt/sql-data/fio-test/datafile.mdf
+rw=randrw
+rwmixread=70
+bs=8k
+size=30G
+iodepth=8
+numjobs=4
+fsync=4096
+runtime=93600
+ramp_time=600
+write_bw_log=sql-data-bw
+write_iops_log=sql-data-iops
+write_lat_log=sql-data-lat
+log_avg_msec=1000
+
+[sql-tempdb-26h]
+new_group=1
+filename=/mnt/sql-tempdb/fio-test/tempdb.mdf
+rw=randrw
+rwmixread=50
+bs=64k
+size=8G
+iodepth=4
+numjobs=2
+fsync=2048
+runtime=93600
+ramp_time=600
+write_bw_log=sql-tempdb-bw
+write_iops_log=sql-tempdb-iops
+write_lat_log=sql-tempdb-lat
+log_avg_msec=1000
+
+[sql-log-26h]
+new_group=1
+filename=/mnt/sql-log/fio-test/logfile.ldf
+rw=write
+bs=60k
+size=4G
+iodepth=1
+numjobs=1
+sync=1
+runtime=93600
+ramp_time=600
+write_bw_log=sql-log-bw
+write_iops_log=sql-log-iops
+write_lat_log=sql-log-lat
+log_avg_msec=1000

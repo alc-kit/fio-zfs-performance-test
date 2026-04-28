@@ -127,35 +127,41 @@ state looks fine and the checkpoint burst exposes the collision.
 | `ioengine-matrix/libaio` IOPS    | Upper bound for VMs configured with `aio=native`         |
 | Checkpoint-storm log p99         | Worst-case commit latency under dirty-burst contention — this is the number to compare against your actual DB's write-latency SLO |
 
-## Closing the gap: the in-VM Windows test (`win/`)
+## Closing the gap: in-VM tests (`win/` and `linux-vm/`)
 
-The `win/` subdirectory is the practical follow-up: a PowerShell-based
-parallel of `bin/run-suite.sh` that runs fio *inside* a Proxmox Windows
-Server 2025 VM whose disks are zvols on the same pool. The VM is sized
-realistically (16 cores, 566 GiB RAM, virtio-SCSI with `iothread=1`,
-`discard=on`, `ssd=1`) and the test volumes (E:, F:, G:) are NTFS-formatted
-with 64 KiB allocation units — Microsoft's documented SQL Server best
-practice — and given Defender exclusions, high-performance power plan,
-and disabled NTFS last-access-time, exactly as a real SQL Server install
-guide would specify.
+Two parallel in-VM frameworks exist alongside the host one. Together they
+make a four-way comparison possible, all on the same physical Proxmox node:
 
-Three layers can then be compared directly:
+| Layer | Where the I/O is issued | What it adds vs the layer above |
+|---|---|---|
+| **(1) Host on zvol** (`bin/run-suite.sh jobs/workloads/sqlserver-zvol.fio`) | Linux host process, direct on `/dev/zvol/...` | nothing - the floor; pool's raw zvol code path |
+| **(2) Linux VM on ext4** (`linux-vm/bin/run-suite.sh workloads/sqlserver-vm-sim.fio`) | Ubuntu Server VM process, ext4 file on virtio-scsi | qemu virtio-scsi + Linux block layer + ext4 |
+| **(3) Windows VM on NTFS** (`win/Run-Suite.ps1 workloads\sqlserver-vm-sim.fio`) | Windows Server 2025 VM process, NTFS file on virtio-scsi | qemu virtio-scsi + Windows IO + NTFS |
+| **(4) SQL Server itself** | Inside the VM, but adds: buffer pool, log manager, checkpointer, scheduler waits | not measured by this framework |
 
-1. **fio host on zvol** (`bin/run-suite.sh jobs/workloads/sqlserver-zvol.fio`)
-   — touches the pool through ZPL/zvol code path; no VM stack.
-2. **fio in-VM on NTFS file** (`win/Run-Suite.ps1 workloads\sqlserver-vm-sim.fio`)
-   — adds qemu virtio-SCSI, guest Windows I/O stack, and NTFS on top of
-   the same pool.
-3. *(SQL Server itself, on the same VM)* — adds the buffer pool, log
-   manager, checkpointer, scheduler, and waits. This framework does not
-   simulate SQL Server proper; it gives you the storage-stack ceiling
-   that a real SQL Server install would have to live under.
+The deltas decompose the storage stack:
 
-The delta between (1) and (2) is the "VM stack tax" — the sum of virtio
-queue serialisation, qemu iothread CPU, and NTFS metadata overhead.
-Quantifying it lets you reason about how much of any production SQL
-Server latency is the storage stack vs the database itself.
+- **(2) - (1)** = `virtio-scsi + ext4` overhead.
+- **(3) - (2)** = `Windows-IO + NTFS - Linux-IO - ext4` overhead. With Linux
+  removed as a control, this isolates the OS / filesystem contribution that
+  was previously confounded by virtio queue depth and other VM-layer
+  variables.
+- **(3) - (1)** = full Windows VM stack tax (the cumulative cost a real
+  Windows-VM-hosted SQL Server pays vs running the same workload on the
+  bare host).
 
-For comparison validity, both runs must execute on the **same physical
-Proxmox node** so the underlying NVMe + LUKS + ZFS stack is identical.
-See `win/README.md` for the comparison protocol.
+The Windows VM (`win/`) is set up exactly as a real SQL Server install guide
+would specify: 64 KiB NTFS allocation units, Defender exclusions for the
+test paths, high-performance power plan, NTFS last-access-time disabled.
+
+The Linux VM (`linux-vm/`) is set up with the equivalent Linux-side tunings
+that production Linux DB hosts apply: ext4 mounted with `noatime,nodiratime`,
+CPU governor set to `performance`, transparent hugepages disabled. fio
+uses `ioengine=io_uring` (matching what modern Linux applications and qemu
+itself use for their own VM disks).
+
+For all comparisons to be valid, every run must execute on the **same
+physical Proxmox node**, otherwise hardware divergence (e.g. Samsung-vs-
+Micron NVMe drives across nodes - see findings-2026-04-25.md §6) will
+swamp the VM-stack signal we're trying to measure. See `linux-vm/README.md`
+and `win/README.md` for the comparison protocols and concrete invocations.

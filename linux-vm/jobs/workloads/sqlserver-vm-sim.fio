@@ -1,0 +1,56 @@
+; SQL Server VM simulation - INSIDE the Ubuntu VM, ext4 files on three
+; dedicated virtio-SCSI volumes. Counterpart to:
+;   - jobs/workloads/sqlserver-zvol.fio                 (host on zvol)
+;   - win/jobs/workloads/sqlserver-vm-sim.fio           (Windows VM on NTFS)
+;
+; The three-way comparison (host | Linux VM | Windows VM) on the same physical
+; node lets us decompose the VM-stack overhead into:
+;   Linux VM minus Host    = virtio-scsi + ext4 path
+;   Windows VM minus Host  = virtio-scsi + NTFS + Windows-IO path
+;   Windows VM minus Linux = NTFS-vs-ext4 + Windows-vs-Linux stack delta
+;
+; Layout matches Microsoft's documented best-practice separation, ported to
+; ext4 mounts:
+;   /mnt/sql-data/fio-test/datafile.mdf    - random 8K, 70/30 R/W, periodic fsync
+;                                            (data file: buffer-pool misses + dirty writes)
+;   /mnt/sql-tempdb/fio-test/tempdb.mdf    - random 64K, 50/50 R/W, periodic fsync
+;                                            (tempdb: allocation churn + sort spills)
+;   /mnt/sql-log/fio-test/logfile.ldf      - sequential, small, sync, QD=1
+;                                            (log: write-ahead log, FUA / O_DSYNC)
+;
+; Sizes 30/8/4 GiB chosen to match the Windows VM tests for a fair comparison.
+; Each ext4 volume is 100 GiB, well within capacity. The host's 200/40/20 GiB
+; sizes are larger and not directly comparable; scale up only if you also
+; expand the Windows VM tests symmetrically.
+
+[sql-data]
+new_group=1
+filename=/mnt/sql-data/fio-test/datafile.mdf
+rw=randrw
+rwmixread=70
+bs=8k
+size=30G
+iodepth=8
+numjobs=4
+fsync=4096
+
+[sql-tempdb]
+new_group=1
+filename=/mnt/sql-tempdb/fio-test/tempdb.mdf
+rw=randrw
+rwmixread=50
+bs=64k
+size=8G
+iodepth=4
+numjobs=2
+fsync=2048
+
+[sql-log]
+new_group=1
+filename=/mnt/sql-log/fio-test/logfile.ldf
+rw=write
+bs=60k
+size=4G
+iodepth=1
+numjobs=1
+sync=1
