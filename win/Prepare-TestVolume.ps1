@@ -63,9 +63,9 @@ if ($candidates.Count -lt 3) {
 
 # Map roles to drive letters in SQL Server convention
 $layout = @(
-    @{ Role='data';   Drive='E'; Label='SQL-Data'  }
-    @{ Role='log';    Drive='F'; Label='SQL-Log'   }
-    @{ Role='tempdb'; Drive='G'; Label='SQL-Tempdb' }
+    @{ Role='data';   Drive='F'; Label='SQL-Data'  }
+    @{ Role='log';    Drive='G'; Label='SQL-Log'   }
+    @{ Role='tempdb'; Drive='H'; Label='SQL-Tempdb' }
 )
 
 # --- 2. Capture original state for later revert ------------------------
@@ -152,7 +152,7 @@ try { Set-Service wuauserv -StartupType Disabled -ErrorAction Stop } catch { Wri
 # --- 5. Summary --------------------------------------------------------
 Write-Host ''
 Write-Host '=== Volumes ready ===' -ForegroundColor Green
-Get-Volume -DriveLetter E,F,G -ErrorAction SilentlyContinue |
+Get-Volume -DriveLetter F,G,H -ErrorAction SilentlyContinue |
     Format-Table DriveLetter,FileSystem,FileSystemLabel,@{n='AllocUnit';e={(Get-CimInstance Win32_Volume -Filter "DriveLetter='$($_.DriveLetter):'").BlockSize}},Size,SizeRemaining -AutoSize
 
 Write-Host '=== Saved state ===' -ForegroundColor Green

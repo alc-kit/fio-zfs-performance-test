@@ -52,7 +52,7 @@ if (-not (Get-Command fio.exe -ErrorAction SilentlyContinue)) {
 }
 
 # Validate test volumes are prepared
-foreach ($d in 'E','F','G') {
+foreach ($d in 'F','G','H') {
     if (-not (Get-Volume -DriveLetter $d -ErrorAction SilentlyContinue)) {
         Die "Volume ${d}: not present. Run Prepare-TestVolume.ps1 first."
     }
@@ -145,7 +145,7 @@ function Run-OneJob($job, $suite) {
     $pidFile = Join-Path $monDir 'monitors.pid'
 
     # Volume free-space snapshot before/after
-    $volSnap = { Get-Volume -DriveLetter E,F,G | Format-Table DriveLetter,FileSystemLabel,SizeRemaining,Size -AutoSize | Out-String }
+    $volSnap = { Get-Volume -DriveLetter F,G,H | Format-Table DriveLetter,FileSystemLabel,SizeRemaining,Size -AutoSize | Out-String }
     & $volSnap | Set-Content -LiteralPath (Join-Path $out 'volumes-before.txt')
 
     # Build effective.fio: global prelude + selected job
