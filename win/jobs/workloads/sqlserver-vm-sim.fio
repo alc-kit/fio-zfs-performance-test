@@ -1,4 +1,4 @@
-; SQL Server VM simulation — INSIDE the Windows VM, NTFS files on three
+; SQL Server VM simulation - INSIDE the Windows VM, NTFS files on three
 ; dedicated virtio-SCSI volumes. Counterpart to the host-side
 ; jobs/workloads/sqlserver-zvol.fio.
 ;
@@ -8,19 +8,26 @@
 ; on top of the same physical pool.
 ;
 ; Layout matches Microsoft's documented best-practice separation:
-;   F:\fio-test\datafile.mdf   — random 8K, 70/30 R/W, periodic fsync
+;   F:\fio-test\datafile.mdf   - random 8K, 70/30 R/W, periodic fsync
 ;                                (data file: buffer-pool misses + dirty writes)
-;   H:\fio-test\tempdb.mdf     — random 64K, 50/50 R/W, periodic fsync
+;   H:\fio-test\tempdb.mdf     - random 64K, 50/50 R/W, periodic fsync
 ;                                (tempdb: allocation churn + sort spills)
-;   G:\fio-test\logfile.ldf    — sequential, small, sync, QD=1
+;   G:\fio-test\logfile.ldf    - sequential, small, sync, QD=1
 ;                                (log: write-ahead log, FUA / WRITE_THROUGH)
 ;
-; File sizes are SCALED DOWN from the host's 200/40/20 GiB to 80/30/18 GiB
-; because each virtio data disk is only 100 GiB. The *shape* of the I/O
-; pattern (block sizes, ratios, sync semantics) is identical to the host.
-; Working sets are therefore smaller — note that ARC on the Proxmox host
-; will mask more of the read traffic than in the host-side test where the
-; working set was 200 GiB.
+; File sizes are SCALED DOWN from the host's 200/40/20 GiB to 30/8/4 GiB
+; because each virtio data disk is only 100 GiB and a single suite run
+; (workloads) creates files from BOTH this job and sqlserver-vm-checkpoint-
+; storm.fio simultaneously. The combined per-disk usage at these sizes is
+; F: ~64 GiB, G: ~8 GiB, H: ~18 GiB worst case (with sanity-check files
+; lingering), comfortably under the ~95 GiB NTFS-usable per disk.
+;
+; The *shape* of the I/O pattern (block sizes, ratios, sync semantics) is
+; identical to the host. Working sets are smaller though - note that the
+; Proxmox host's ARC will mask more of the read traffic than in the
+; host-side test where the working set was 200 GiB. To increase per-disk
+; sizes meaningfully, the VM's virtio data disks would need to be expanded
+; first.
 
 [sql-data]
 new_group=1
@@ -28,7 +35,7 @@ filename=F\:\fio-test\datafile.mdf
 rw=randrw
 rwmixread=70
 bs=8k
-size=80G
+size=30G
 iodepth=8
 numjobs=4
 fsync=4096
@@ -39,7 +46,7 @@ filename=H\:\fio-test\tempdb.mdf
 rw=randrw
 rwmixread=50
 bs=64k
-size=30G
+size=8G
 iodepth=4
 numjobs=2
 fsync=2048
@@ -49,7 +56,7 @@ new_group=1
 filename=G\:\fio-test\logfile.ldf
 rw=write
 bs=60k
-size=18G
+size=4G
 iodepth=1
 numjobs=1
 sync=1

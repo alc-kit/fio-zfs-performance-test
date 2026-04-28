@@ -1,4 +1,4 @@
-; 26-hour SQL Server VM endurance simulation — counterpart to the host's
+; 26-hour SQL Server VM endurance simulation - counterpart to the host's
 ; jobs/endurance/sqlserver-zvol-26h.fio. Same three concurrent streams as
 ; sqlserver-vm-sim.fio, runtime pinned to 93600 s with a 600 s warm-up.
 ;
@@ -7,7 +7,19 @@
 ; This in-VM test asks: does the same drift appear when the workload arrives
 ; via virtio-SCSI + NTFS instead of touching the zvol directly?
 ;
-; Sizes scaled to fit the per-disk 100 GiB caps (vs the host's 200/40/20G).
+; Sizes 30/8/4 GiB chosen to coexist with files from sqlserver-vm-sim.fio
+; and sqlserver-vm-checkpoint-storm.fio on the same 100 GiB virtio disks
+; (per-disk worst case ~64/8/18 GiB across F:/G:/H:). The endurance run
+; reuses the sim filenames so running 26h after sim consumes no extra
+; disk; running both back-to-back requires only that the disk has room
+; for the larger of the two (which is identical here).
+;
+; The host's 26h run had 200/40/20 GiB working sets. The VM's working
+; sets are ~6x smaller. Implication: with ARC up to 256 GiB on the host,
+; the VM data file fits comfortably in ARC, so the read side of this
+; test mostly measures cache hits rather than NVMe reads. The write
+; side (especially the synchronous log stream) is unaffected by ARC and
+; is the meaningful number for SQL Server commit-latency comparison.
 
 [sql-data-26h]
 new_group=1
@@ -15,7 +27,7 @@ filename=F\:\fio-test\datafile.mdf
 rw=randrw
 rwmixread=70
 bs=8k
-size=80G
+size=30G
 iodepth=8
 numjobs=4
 fsync=4096
@@ -32,7 +44,7 @@ filename=H\:\fio-test\tempdb.mdf
 rw=randrw
 rwmixread=50
 bs=64k
-size=30G
+size=8G
 iodepth=4
 numjobs=2
 fsync=2048
@@ -48,7 +60,7 @@ new_group=1
 filename=G\:\fio-test\logfile.ldf
 rw=write
 bs=60k
-size=18G
+size=4G
 iodepth=1
 numjobs=1
 sync=1

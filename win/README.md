@@ -101,12 +101,19 @@ For the comparison to be meaningful:
 2. **Same pool state.** Run the VM tests reasonably soon after the host
    tests, ideally without a full pool clean-up in between so fragmentation
    state is similar. Or, conversely, clean and re-prepare both.
-3. **Equivalent file sizes if possible.** This framework defaults to
-   80/30/18 GiB (data/tempdb/log) inside the VM because each virtio data
-   disk is 100 GiB. The host tests use 200/40/20 GiB. The shape is the
-   same; the absolute throughput numbers will differ partly because of
-   working-set size. If you need exact size parity, expand the VM's
-   virtio data disks first.
+3. **File sizes are constrained by per-disk capacity.** The framework
+   defaults to **30/8/4 GiB** (data/tempdb/log) inside the VM because each
+   virtio data disk is only 100 GiB and a single suite run creates files
+   from multiple .fio jobs simultaneously (e.g. `sqlserver-vm-sim.fio`
+   and `sqlserver-vm-checkpoint-storm.fio` both write to F:). The host
+   tests use 200/40/20 GiB on a 500 GiB zvol. The *shape* of the I/O
+   pattern (block sizes, ratios, sync semantics) is identical; absolute
+   throughput numbers differ because of working-set size, and the read
+   side of the VM tests will be more cache-friendly (the host's ARC up
+   to 256 GiB easily holds a 30 GiB working set). The write side -
+   especially the synchronous log stream - is the meaningful number for
+   SQL Server commit-latency comparison and is largely cache-independent.
+   If you need larger working sets, expand the VM's virtio data disks first.
 4. **Read the host-side `docs/sqlserver-comparison.md`.** It describes
    each layer the VM stack adds (buffer pool absent here, virtio queue
    serialisation, FUA semantics, qemu iothread). The numbers from this
