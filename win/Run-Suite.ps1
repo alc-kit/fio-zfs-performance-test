@@ -176,11 +176,27 @@ function Run-OneJob($job, $suite) {
     return $rc
 }
 
-function Collect-Jobs($arg) {
-    if (Test-Path $arg -PathType Leaf) { return ,(Resolve-Path $arg).Path }
-    $candidate = Join-Path (Join-Path $scriptDir 'jobs') $arg
-    if (Test-Path $candidate -PathType Container) {
-        return Get-ChildItem -LiteralPath $candidate -Filter '*.fio' | Sort-Object Name | ForEach-Object { $_.FullName }
+# Resolve a user-supplied $arg into either a single .fio file or a list of them.
+# Accepts:
+#   - absolute / cwd-relative path to a .fio file
+#   - cwd-relative path to a directory of .fio files
+#   - a path relative to <scriptDir>\jobs\ (file or directory), e.g.
+#     'baseline\sanity-check.fio' or just 'baseline'
+function Resolve-JobArg($arg) {
+    # Try as-is (cwd-relative or absolute) first
+    if (Test-Path -LiteralPath $arg -PathType Leaf) {
+        return @{ Kind = 'file'; Path = (Resolve-Path -LiteralPath $arg).Path }
+    }
+    if (Test-Path -LiteralPath $arg -PathType Container) {
+        return @{ Kind = 'dir';  Path = (Resolve-Path -LiteralPath $arg).Path }
+    }
+    # Then try relative to win\jobs\
+    $under = Join-Path (Join-Path $scriptDir 'jobs') $arg
+    if (Test-Path -LiteralPath $under -PathType Leaf) {
+        return @{ Kind = 'file'; Path = (Resolve-Path -LiteralPath $under).Path }
+    }
+    if (Test-Path -LiteralPath $under -PathType Container) {
+        return @{ Kind = 'dir';  Path = (Resolve-Path -LiteralPath $under).Path }
     }
     Die "no such suite or file: $arg"
 }
@@ -195,13 +211,16 @@ if ($All) {
         }
     }
 } elseif ($Path) {
-    if (Test-Path $Path -PathType Leaf) {
-        $suite = Split-Path -Leaf (Split-Path -Parent (Resolve-Path $Path))
-        $rc = Run-OneJob (Resolve-Path $Path).Path $suite
+    $resolved = Resolve-JobArg $Path
+    if ($resolved.Kind -eq 'file') {
+        # Suite name is the parent directory of the .fio file
+        $suite = Split-Path -Leaf (Split-Path -Parent $resolved.Path)
+        $rc = Run-OneJob $resolved.Path $suite
         if ($rc -ne 0) { $overallRc = $rc }
     } else {
-        foreach ($job in (Collect-Jobs $Path)) {
-            $rc = Run-OneJob $job $Path
+        $suite = Split-Path -Leaf $resolved.Path
+        Get-ChildItem -LiteralPath $resolved.Path -Filter '*.fio' | Sort-Object Name | ForEach-Object {
+            $rc = Run-OneJob $_.FullName $suite
             if ($rc -ne 0) { $overallRc = $rc }
         }
     }

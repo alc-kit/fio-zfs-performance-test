@@ -63,20 +63,17 @@ Section 'services.txt' 'SQL Server (info only)' { Get-Service MSSQL* -ErrorActio
 
 # tool-availability.txt - what could and could not be measured at run time
 $toolFile = Join-Path $OutDir 'tool-availability.txt'
-@(
-    '# Required: Run-Suite.ps1 aborts if any of these is missing.'
-) | Set-Content -LiteralPath $toolFile
-foreach ($tool in 'fio.exe','typeperf.exe','powershell.exe','powercfg.exe','fsutil.exe') {
-    $cmd = Get-Command $tool -ErrorAction SilentlyContinue
-    if ($cmd) { "  REQUIRED  OK       $tool -> $($cmd.Source)" } else { "  REQUIRED  MISSING  $tool" }
+'# Required: Run-Suite.ps1 aborts if any of these is missing.' |
+    Set-Content -LiteralPath $toolFile
+'fio.exe','typeperf.exe','powershell.exe','powercfg.exe','fsutil.exe' | ForEach-Object {
+    $cmd = Get-Command $_ -ErrorAction SilentlyContinue
+    if ($cmd) { "  REQUIRED  OK       $_ -> $($cmd.Source)" } else { "  REQUIRED  MISSING  $_" }
 } | Add-Content -LiteralPath $toolFile
-@(
-    ''
-    '# Optional: enriches analysis but the run proceeds without these.'
-) | Add-Content -LiteralPath $toolFile
-foreach ($tool in 'logman.exe','wpr.exe','perfmon.exe') {
-    $cmd = Get-Command $tool -ErrorAction SilentlyContinue
-    if ($cmd) { "  OPTIONAL  OK       $tool -> $($cmd.Source)" } else { "  OPTIONAL  MISSING  $tool" }
+'','# Optional: enriches analysis but the run proceeds without these.' |
+    Add-Content -LiteralPath $toolFile
+'logman.exe','wpr.exe','perfmon.exe' | ForEach-Object {
+    $cmd = Get-Command $_ -ErrorAction SilentlyContinue
+    if ($cmd) { "  OPTIONAL  OK       $_ -> $($cmd.Source)" } else { "  OPTIONAL  MISSING  $_" }
 } | Add-Content -LiteralPath $toolFile
 
 Write-Host "[$(Get-Date -Format HH:mm:ss)] env snapshot: $OutDir"
