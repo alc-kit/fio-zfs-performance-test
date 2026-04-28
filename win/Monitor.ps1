@@ -46,15 +46,39 @@ if (-not $typeperf) {
 function Start-Counter($name, [string[]]$counters, [string]$kind = 'CRITICAL') {
     $csv = Join-Path $OutDir "$name.csv"
     $stdoutLog = Join-Path $OutDir "$name.stdout.log"
-    # typeperf -f CSV -o output.csv -si 1 "<counter1>" "<counter2>" ...
-    $args = @('-f','CSV','-o',$csv,'-si','1') + $counters
-    $proc = Start-Process -FilePath typeperf.exe -ArgumentList $args -PassThru `
-        -WindowStyle Hidden -RedirectStandardOutput $stdoutLog -RedirectStandardError "$stdoutLog.err"
-    Start-Sleep -Milliseconds 500
+    $stderrLog = Join-Path $OutDir "$name.stderr.log"
+
+    # Build a single quoted command line. -ArgumentList @() with PowerShell's
+    # array form has known quoting bugs around counter strings containing parens
+    # and slashes (e.g. '\PhysicalDisk(*)\Disk Reads/sec'). Building a single
+    # pre-quoted string avoids that.
+    $quotedCounters = $counters | ForEach-Object { '"' + $_ + '"' }
+    $argLine = '-f CSV -o "{0}" -si 1 {1}' -f $csv, ($quotedCounters -join ' ')
+
+    try {
+        $proc = Start-Process -FilePath 'typeperf.exe' -ArgumentList $argLine -PassThru `
+            -WindowStyle Hidden -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog
+    } catch {
+        Note "FAILED   [$kind] $name - Start-Process threw: $($_.Exception.Message)"
+        Note "    | argline: $argLine"
+        return
+    }
+    Start-Sleep -Milliseconds 1500
     if (-not $proc -or $proc.HasExited) {
-        Note ("FAILED   [$kind] $name - process exited immediately. First lines of error:")
-        if (Test-Path "$stdoutLog.err") {
-            Get-Content "$stdoutLog.err" -TotalCount 5 | ForEach-Object { Add-Content -LiteralPath $summary -Value "    | $_" }
+        $exitCode = if ($proc) { $proc.ExitCode } else { 'n/a' }
+        Note ("FAILED   [$kind] $name - process exited immediately (exit=$exitCode)")
+        Note "    | argline: $argLine"
+        if ((Test-Path $stdoutLog) -and (Get-Item $stdoutLog).Length -gt 0) {
+            Note "    -- stdout (first 10 lines): --"
+            Get-Content $stdoutLog -TotalCount 10 | ForEach-Object {
+                Add-Content -LiteralPath $summary -Value "    | $_"
+            }
+        }
+        if ((Test-Path $stderrLog) -and (Get-Item $stderrLog).Length -gt 0) {
+            Note "    -- stderr (first 10 lines): --"
+            Get-Content $stderrLog -TotalCount 10 | ForEach-Object {
+                Add-Content -LiteralPath $summary -Value "    | $_"
+            }
         }
         return
     }
