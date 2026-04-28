@@ -36,7 +36,7 @@ $scriptDir = $PSScriptRoot
 $repoRoot  = Split-Path -Parent $scriptDir
 if (-not $ResultsDir) { $ResultsDir = Join-Path $repoRoot 'results\win' }
 
-# Defaults — overridable via environment so a single run can be retargeted
+# Defaults - overridable via environment so a single run can be retargeted
 if (-not $env:FIO_IOENGINE) { $env:FIO_IOENGINE = 'windowsaio' }
 if (-not $env:FIO_RUNTIME)  { $env:FIO_RUNTIME  = '120' }
 if (-not $env:FIO_RAMP_TIME){ $env:FIO_RAMP_TIME = '10' }
@@ -99,7 +99,7 @@ function Split-FioOut($outFile, $jsonFile, $txtFile) {
         }
     }
     if ($end -lt 0) {
-        Log 'warn: unbalanced JSON braces in fio.out — saving raw output only'
+        Log 'warn: unbalanced JSON braces in fio.out - saving raw output only'
         Set-Content -LiteralPath $txtFile -Value $buf
         return
     }
@@ -167,7 +167,7 @@ function Run-OneJob($job, $suite) {
             $effective *> $fioLog
         $rc = $LASTEXITCODE
         Split-FioOut -outFile $fioOut -jsonFile (Join-Path $out 'fio.json') -txtFile (Join-Path $out 'fio.summary.txt')
-        if ($rc -ne 0) { Log "FIO EXIT $rc — see $fioLog" } else { Log "done: $out" }
+        if ($rc -ne 0) { Log "FIO EXIT $rc - see $fioLog" } else { Log "done: $out" }
     } finally {
         Pop-Location
         Stop-Monitors $pidFile

@@ -11,7 +11,7 @@
 
 [sql-data-26h]
 new_group=1
-filename=E\:\fio-test\datafile.mdf
+filename=F\:\fio-test\datafile.mdf
 rw=randrw
 rwmixread=70
 bs=8k
@@ -28,7 +28,7 @@ log_avg_msec=1000
 
 [sql-tempdb-26h]
 new_group=1
-filename=G\:\fio-test\tempdb.mdf
+filename=H\:\fio-test\tempdb.mdf
 rw=randrw
 rwmixread=50
 bs=64k
@@ -45,7 +45,7 @@ log_avg_msec=1000
 
 [sql-log-26h]
 new_group=1
-filename=F\:\fio-test\logfile.ldf
+filename=G\:\fio-test\logfile.ldf
 rw=write
 bs=60k
 size=18G

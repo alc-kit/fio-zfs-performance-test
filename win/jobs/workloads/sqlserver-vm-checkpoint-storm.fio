@@ -11,7 +11,7 @@
 
 [oltp-steady]
 new_group=1
-filename=E\:\fio-test\oltp.mdf
+filename=F\:\fio-test\oltp.mdf
 rw=randrw
 rwmixread=80
 bs=8k
@@ -22,7 +22,7 @@ runtime=${FIO_RUNTIME}
 
 [log-steady]
 new_group=1
-filename=F\:\fio-test\oltp.ldf
+filename=G\:\fio-test\oltp.ldf
 rw=write
 bs=16k
 size=10G
@@ -33,7 +33,7 @@ runtime=${FIO_RUNTIME}
 
 [checkpoint-burst]
 new_group=1
-filename=G\:\fio-test\oltp-burst.dat
+filename=H\:\fio-test\oltp-burst.dat
 rw=write
 bs=256k
 size=30G

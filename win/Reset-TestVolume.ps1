@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     Revert the host-level adjustments made by Prepare-TestVolume.ps1.
-    Does NOT delete the NTFS test volumes or their data — call cleanup
+    Does NOT delete the NTFS test volumes or their data - call cleanup
     manually if you also want the volumes gone.
 
 .DESCRIPTION

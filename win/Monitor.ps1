@@ -10,8 +10,8 @@
     produced so a future reader can see exactly which counters were captured.
 
     Two tiers, matching the Linux side:
-      CRITICAL — disk + cpu counters; abort if typeperf is missing.
-      OPTIONAL — extra signal that enriches analysis but is not load-bearing.
+      CRITICAL - disk + cpu counters; abort if typeperf is missing.
+      OPTIONAL - extra signal that enriches analysis but is not load-bearing.
 #>
 [CmdletBinding()]
 param(
@@ -24,7 +24,7 @@ $pidFile = Join-Path $OutDir 'monitors.pid'
 $summary = Join-Path $OutDir 'MONITORS_SUMMARY.txt'
 '' | Set-Content -LiteralPath $pidFile
 @(
-    "# Monitor.ps1 summary — $(Get-Date -Format o)"
+    "# Monitor.ps1 summary - $(Get-Date -Format o)"
     '# CRITICAL = required for the run; SKIPPED/FAILED here aborts the suite.'
     '# OPTIONAL = enriches analysis but the run proceeds without it.'
     ''
@@ -39,7 +39,7 @@ function Note($msg) {
 # Confirm typeperf is on PATH
 $typeperf = Get-Command typeperf.exe -ErrorAction SilentlyContinue
 if (-not $typeperf) {
-    Note 'FATAL    typeperf.exe not on PATH — cannot start any monitor'
+    Note 'FATAL    typeperf.exe not on PATH - cannot start any monitor'
     throw 'typeperf missing'
 }
 
@@ -52,7 +52,7 @@ function Start-Counter($name, [string[]]$counters, [string]$kind = 'CRITICAL') {
         -WindowStyle Hidden -RedirectStandardOutput $stdoutLog -RedirectStandardError "$stdoutLog.err"
     Start-Sleep -Milliseconds 500
     if (-not $proc -or $proc.HasExited) {
-        Note ("FAILED   [$kind] $name — process exited immediately. First lines of error:")
+        Note ("FAILED   [$kind] $name - process exited immediately. First lines of error:")
         if (Test-Path "$stdoutLog.err") {
             Get-Content "$stdoutLog.err" -TotalCount 5 | ForEach-Object { Add-Content -LiteralPath $summary -Value "    | $_" }
         }
