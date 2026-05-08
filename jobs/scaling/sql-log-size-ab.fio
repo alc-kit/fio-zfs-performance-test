@@ -1,0 +1,65 @@
+; Hypothesis (a) test for the §11.5 VM-vs-host puzzle: does the host-side
+; sql-log latency improvement come from a smaller log file (4 GiB matching
+; what the Windows VM 26h test used) versus the original 20 GiB region used
+; in the host 26h endurance?
+;
+; Single isolated sql-log stream (no concurrent sql-data / sql-tempdb
+; streams). The point is to vary ONLY the file size and see what happens
+; to log-write tail latency. Other hypotheses (concurrent-stream contention,
+; qemu pipelining, zvol fragmentation) are deliberately not tested here -
+; isolate variables one at a time.
+;
+; Both regions are in fresh, never-written zvol territory (offsets 380-420G)
+; so prior COW state is identical. Both run 30 min with a 2 min warmup.
+;
+; Reference numbers we are trying to explain (from §5 / §11 of findings):
+;   Host -05 26h    sql-log p99=36ms p99.9=65ms (size=20G, 3 concurrent streams)
+;   Windows VM 26h  sql-log p99=3.5ms p99.9=11.5ms (size=4G, 3 concurrent streams)
+;
+; Decision logic:
+;   If [sql-log-4g] p99.9 ~= 11.5ms and [sql-log-20g] p99.9 ~= 65ms:
+;     -> hypothesis (a) confirmed; working-set size is the dominant factor
+;        and the VM-vs-host puzzle is closed.
+;   If [sql-log-4g] p99.9 stays in the host range (30-65ms):
+;     -> hypothesis (a) dead; size alone does not explain the VM's lead.
+;        Move to level B (a contention-isolation experiment).
+;   If [sql-log-4g] is much better than [sql-log-20g] BUT still worse than
+;   the VM (e.g. 25 ms vs 65 ms):
+;     -> partial credit; both size AND something else matter. Two-variable
+;        explanation. Move to level B for the second variable.
+
+[sql-log-4g]
+filename=/dev/zvol/${ZFS_POOL}/${ZVOL_NAME}
+offset=380G
+size=4G
+rw=write
+bs=60k
+iodepth=1
+numjobs=1
+sync=1
+runtime=1800
+ramp_time=120
+write_bw_log=log-4g-bw
+write_iops_log=log-4g-iops
+write_lat_log=log-4g-lat
+log_avg_msec=1000
+percentile_list=1:5:10:25:50:75:90:95:99:99.5:99.9:99.95:99.99
+stonewall
+
+[sql-log-20g]
+filename=/dev/zvol/${ZFS_POOL}/${ZVOL_NAME}
+offset=400G
+size=20G
+rw=write
+bs=60k
+iodepth=1
+numjobs=1
+sync=1
+runtime=1800
+ramp_time=120
+write_bw_log=log-20g-bw
+write_iops_log=log-20g-iops
+write_lat_log=log-20g-lat
+log_avg_msec=1000
+percentile_list=1:5:10:25:50:75:90:95:99:99.5:99.9:99.95:99.99
+stonewall
